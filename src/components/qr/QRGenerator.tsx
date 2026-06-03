@@ -1,27 +1,26 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
 import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Upload, Download, Image, FileText, Palette, QrCode, Loader2 } from 'lucide-react';
+import { Upload, Download, Image, FileText, Palette, QrCode, Loader2, RefreshCw } from 'lucide-react';
 
-const dotTypes: { value: DotType; label: string }[] = [
+const dotTypes = [
   { value: 'square', label: 'Carré' },
   { value: 'rounded', label: 'Arrondi' },
   { value: 'dots', label: 'Points' },
   { value: 'extra-rounded', label: 'Extra arrondi' },
-];
+] as const;
 
-const cornerTypes: { value: CornerSquareType; label: string }[] = [
+const cornerTypes = [
   { value: 'square', label: 'Standard' },
   { value: 'extra-rounded', label: 'Arrondi' },
   { value: 'dot', label: 'Point' },
-];
+] as const;
 
 const colors = [
   '#22C55E', '#EAB308', '#00D4FF', '#FF3366',
@@ -39,74 +38,74 @@ interface QRGeneratorProps {
 
 export function QRGenerator({ onSave }: QRGeneratorProps) {
   const { user } = useAuth();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const qrRef = useRef<any>(null);
-
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
   const [fgColor, setFgColor] = useState('#22C55E');
   const [bgColor, setBgColor] = useState('#FFFFFF');
-  const [dotType, setDotType] = useState<DotType>('rounded');
-  const [cornerType, setCornerType] = useState<CornerSquareType>('extra-rounded');
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [shortCode] = useState(generateShortCode());
   const redirectDomain = process.env.NEXT_PUBLIC_FIREBASE_REDIRECT_DOMAIN || 'https://zuri-qr.vercel.app';
   const qrDataUrl = url ? `${redirectDomain}/r/${shortCode}` : '';
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedQrId, setSavedQrId] = useState<string | null>(null);
-
   const [qrError, setQrError] = useState(false);
 
   const generateQR = useCallback(async () => {
-    if (!url) return;
+    if (!url || !canvasRef.current) return;
+    setQrError(false);
     try {
-      const QRCodeStyling = (await import('qr-code-styling')).default;
-      const qr = new QRCodeStyling({
+      const QRCode = (await import('qrcode'));
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      canvas.width = 220;
+      canvas.height = 220;
+
+      await QRCode.toCanvas(canvas, qrDataUrl, {
         width: 220,
-        height: 220,
-        data: qrDataUrl,
-        dotsOptions: {
-          color: fgColor,
-          type: dotType,
+        margin: 2,
+        color: {
+          dark: fgColor,
+          light: bgColor,
         },
-        cornersSquareOptions: {
-          type: cornerType,
-          color: fgColor,
-        },
-        cornersDotOptions: {
-          type: 'dot',
-          color: fgColor,
-        },
-        backgroundOptions: {
-          color: bgColor,
-        },
-        image: logoFile || undefined,
-        imageOptions: {
-          crossOrigin: 'anonymous',
-          margin: 6,
-          imageSize: 0.3,
-          hideBackgroundDots: true,
-        },
-        qrOptions: {
-          errorCorrectionLevel: 'H',
-        },
+        errorCorrectionLevel: 'H',
       });
-      qrRef.current = qr;
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-        qr.append(containerRef.current);
+
+      if (logoFile) {
+        const img = document.createElement('img');
+        img.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            const logoSize = canvas.width * 0.3;
+            const x = (canvas.width - logoSize) / 2;
+            const y = (canvas.height - logoSize) / 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, logoSize / 2 + 4, 0, Math.PI * 2);
+            ctx.fillStyle = bgColor;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, logoSize / 2, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(img, x, y, logoSize, logoSize);
+            ctx.restore();
+            resolve();
+          };
+          img.onerror = reject;
+          img.src = logoFile;
+        });
       }
-      setQrError(false);
     } catch (e) {
       console.error('[ZURI] QR generation error:', e);
       setQrError(true);
     }
-  }, [url, qrDataUrl, fgColor, bgColor, dotType, cornerType, logoFile]);
+  }, [url, qrDataUrl, fgColor, bgColor, logoFile]);
 
   useEffect(() => {
-    if (url) { generateQR(); }
-  }, [url, fgColor, bgColor, dotType, cornerType, logoFile, qrDataUrl, generateQR]);
+    if (url) generateQR();
+  }, [url, fgColor, bgColor, logoFile, qrDataUrl, generateQR]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -117,11 +116,16 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
   };
 
   const handleExportPNG = () => {
-    qrRef.current?.download({ name: name || 'zuri-qr', extension: 'png' });
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `${name || 'zuri-qr'}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   const handleExportJPG = async () => {
-    const canvas = containerRef.current?.querySelector('canvas');
+    const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement('a');
     link.download = `${name || 'zuri-qr'}.jpg`;
@@ -130,7 +134,7 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
   };
 
   const handleExportPDF = async () => {
-    const canvas = containerRef.current?.querySelector('canvas');
+    const canvas = canvasRef.current;
     if (!canvas) return;
     const { default: jsPDF } = await import('jspdf');
     const imgData = canvas.toDataURL('image/png');
@@ -165,8 +169,8 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
         design: {
           colorFg: fgColor,
           colorBg: bgColor,
-          dotType,
-          cornerType,
+          dotType: 'square',
+          cornerType: 'square',
           hasLogo: !!logoFile,
         },
       };
@@ -177,7 +181,6 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
         targetUrl: url,
         status: 'active',
       });
-      setSavedQrId(qrRef.id);
       setSaved(true);
       onSave?.({ name: name || 'QR Code', url, shortCode });
     } catch (err) {
@@ -187,7 +190,7 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
     }
   };
 
-  const host = new URL(qrDataUrl).host;
+  const host = new URL(qrDataUrl || 'https://zuri.qr').host;
   const previewUrl = qrDataUrl ? `${host}/r/${shortCode}` : '';
 
   return (
@@ -271,48 +274,6 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
         </Card>
 
         <Card>
-          <h3 className="text-text-primary font-semibold mb-4">Style des modules</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-text-secondary mb-2">Forme des points</label>
-              <div className="flex gap-2 flex-wrap">
-                {dotTypes.map((t) => (
-                  <button
-                    key={t.value}
-                    onClick={() => setDotType(t.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                      dotType === t.value
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border text-text-secondary hover:border-text-muted'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm text-text-secondary mb-2">Forme des coins</label>
-              <div className="flex gap-2 flex-wrap">
-                {cornerTypes.map((t) => (
-                  <button
-                    key={t.value}
-                    onClick={() => setCornerType(t.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                      cornerType === t.value
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border text-text-secondary hover:border-text-muted'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
           <div className="flex items-center gap-2 mb-4">
             <Upload size={16} className="text-primary" />
             <h3 className="text-text-primary font-semibold">Logo (fond transparent)</h3>
@@ -346,17 +307,19 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-border">
             <h3 className="text-text-primary font-semibold text-sm">Aperçu</h3>
-            {previewUrl && <Badge variant="success">zuri.qr/{shortCode}</Badge>}
+            {previewUrl && <Badge variant="success">{previewUrl}</Badge>}
           </div>
           <div className="flex items-center justify-center py-6 px-4">
             {url && qrError ? (
               <div className="text-center py-4">
                 <p className="text-danger text-xs mb-2">Erreur de génération</p>
-                <button onClick={() => generateQR()} className="text-primary text-xs underline">Réessayer</button>
+                <button onClick={() => generateQR()} className="flex items-center gap-1 text-primary text-xs underline mx-auto">
+                  <RefreshCw size={12} /> Réessayer
+                </button>
               </div>
             ) : url ? (
               <div className="p-3 rounded-xl bg-deep border border-border shadow-lg shadow-primary/5">
-                <div ref={containerRef} className="flex items-center justify-center [&>div]:flex [&>div]:items-center [&>div]:justify-center" />
+                <canvas ref={canvasRef} width={220} height={220} className="block" />
               </div>
             ) : (
               <div className="text-center py-8">
