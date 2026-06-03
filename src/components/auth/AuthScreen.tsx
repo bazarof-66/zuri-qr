@@ -39,8 +39,11 @@ export function AuthScreen() {
       'auth/invalid-email': 'Email invalide',
       'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
       'auth/popup-closed-by-user': 'Connexion annulée',
+      'auth/operation-not-allowed': 'La connexion Google n\'est pas activée dans Firebase Console → Authentication → Sign-in method',
+      'auth/unauthorized-domain': 'Ce domaine n\'est pas autorisé. Ajoute-le dans Firebase Console → Authentication → Settings → Authorized domains',
+      'auth/account-exists-with-different-credential': 'Cet email est déjà lié à un autre mode de connexion',
     };
-    return map[code] || 'Une erreur est survenue';
+    return map[code] || `Erreur: ${code}. Vérifie que Google est activé dans Firebase Console.`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -90,12 +93,23 @@ export function AuthScreen() {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(_auth, provider);
+      provider.setCustomParameters({ prompt: 'select_account' });
+      let cred;
+      try {
+        cred = await signInWithPopup(_auth, provider);
+      } catch (popupErr: any) {
+        if (popupErr.code === 'auth/popup-blocked') {
+          const { signInWithRedirect } = await import('firebase/auth');
+          await signInWithRedirect(_auth, provider);
+          return;
+        }
+        throw popupErr;
+      }
       const uid = cred.user.uid;
       const { getDoc } = await import('firebase/firestore');
       const snap = await getDoc(doc(_db, 'users', uid));
       if (!snap.exists()) {
-      await setDoc(doc(_db, 'users', uid), {
+        await setDoc(doc(_db, 'users', uid), {
           email: cred.user.email,
           displayName: cred.user.displayName,
           plan: 'free',
