@@ -111,7 +111,9 @@ export default function QRCodesPage() {
                         <span className="text-text-secondary text-sm">{formatDate(qr.createdAt)}</span>
                       </td>
                       <td className="px-5 py-4">
-                        <Button variant="ghost" size="sm">Gérer</Button>
+                        <Link href={`/qrcodes/${qr.id}`}>
+                          <Button variant="ghost" size="sm">Gérer</Button>
+                        </Link>
                       </td>
                     </tr>
                   );
