@@ -28,19 +28,44 @@ function drawFinderPattern(
   const cx = startX + size / 2;
   const cy = startY + size / 2;
 
-  ctx.fillStyle = bg;
+  ctx.fillStyle = fg;
   if (style === 'square') ctx.fillRect(startX, startY, size, size);
   else { ctx.beginPath(); ctx.arc(cx, cy, size / 2, 0, Math.PI * 2); ctx.fill(); }
 
-  ctx.fillStyle = fg;
+  ctx.fillStyle = bg;
   if (style === 'square') ctx.fillRect(startX + cellSize, startY + cellSize, cellSize * 5, cellSize * 5);
   else { ctx.beginPath(); ctx.arc(cx, cy, cellSize * 2.5, 0, Math.PI * 2); ctx.fill(); }
 
+  ctx.fillStyle = fg;
   if (style === 'dot') {
     ctx.beginPath(); ctx.arc(cx, cy, cellSize * 0.8, 0, Math.PI * 2); ctx.fill();
   } else {
     ctx.fillRect(startX + cellSize * 2.5, startY + cellSize * 2.5, cellSize * 2, cellSize * 2);
   }
+}
+
+function getQRCellType(mod: { data: Uint8Array; size: number }, r: number, c: number): 'dark' | 'light' {
+  const fpSize = 7;
+  const count = mod.size;
+  for (const [sr, sc] of [[0, 0], [0, count - fpSize], [count - fpSize, 0]]) {
+    if (r >= sr && r < sr + fpSize && c >= sc && c < sc + fpSize) {
+      const lr = r - sr, lc = c - sc;
+      const isBorder = lr === 0 || lr === 6 || lc === 0 || lc === 6;
+      const isCore = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
+      return (isBorder || isCore) ? 'dark' : 'light';
+    }
+  }
+  return mod.data[r * count + c] === 1 ? 'dark' : 'light';
+}
+
+function isFinderOrigin(mod: { data: Uint8Array; size: number }, r: number, c: number): boolean {
+  const count = mod.size;
+  const fpSize = 7;
+  return (
+    (r === 0 && c === 0) ||
+    (r === 0 && c === count - fpSize) ||
+    (r === count - fpSize && c === 0)
+  );
 }
 
 export function drawQRCanvas(
@@ -60,19 +85,6 @@ export function drawQRCanvas(
   const count = mod.size;
   const cell = size / count;
   const radius = cell * 0.3;
-  const fpRegions = [
-    { r1: 0, r2: 7, c1: 0, c2: 7 },
-    { r1: 0, r2: 7, c1: count - 7, c2: count },
-    { r1: count - 7, r2: count, c1: 0, c2: 7 },
-  ];
-
-  function isFinder(r: number, c: number) {
-    return fpRegions.some(fp => r >= fp.r1 && r < fp.r2 && c >= fp.c1 && c < fp.c2);
-  }
-
-  function isFinderOrigin(r: number, c: number) {
-    return fpRegions.some(fp => r === fp.r1 && c === fp.c1);
-  }
 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, size, size);
@@ -80,19 +92,13 @@ export function drawQRCanvas(
 
   for (let r = 0; r < count; r++) {
     for (let c = 0; c < count; c++) {
-      if (mod.data[r * count + c] !== 1) continue;
+      const t = getQRCellType(mod, r, c);
+      if (t === 'light') continue;
+      if (isFinderOrigin(mod, r, c)) continue;
+
       const x = c * cell;
       const y = r * cell;
-
-      if (isFinder(r, c)) {
-        if (isFinderOrigin(r, c)) {
-          drawFinderPattern(ctx, x, y, cell, fg, bg, cornerType);
-        } else {
-          ctx.fillRect(x, y, cell, cell);
-        }
-        continue;
-      }
-
+      ctx.fillStyle = fg;
       const cx = x + cell / 2;
 
       switch (dotType) {
@@ -114,11 +120,11 @@ export function drawQRCanvas(
     }
   }
 
-  if (cornerType !== 'square') {
-    fpRegions.forEach(fp => {
-      const x = fp.c1 * cell;
-      const y = fp.r1 * cell;
-      drawFinderPattern(ctx, x, y, cell, fg, bg, cornerType);
-    });
+  // Overlay finder patterns
+  const origins = [[0, 0], [0, count - 7], [count - 7, 0]];
+  for (const [or, oc] of origins) {
+    const x = oc * cell;
+    const y = or * cell;
+    drawFinderPattern(ctx, x, y, cell, fg, bg, cornerType);
   }
 }

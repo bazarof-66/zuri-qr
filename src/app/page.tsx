@@ -1,94 +1,95 @@
 'use client';
 
 import Link from 'next/link';
-import { Zap, Menu, X, QrCode, BarChart3, ScanLine, Sparkles, ChevronRight } from 'lucide-react';
+import { Zap, Menu, X, QrCode, BarChart3, ScanLine, Sparkles, ChevronRight, Globe, Check } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 
 export default function LandingPage() {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   return (
-    <div className="min-h-screen bg-deep text-text-primary">
+    <div className="min-h-screen" style={{ background: '#0A0A0A', color: '#E5E2E1' }}>
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-border bg-deep/80 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
+      <header className="sticky top-0 z-50" style={{ background: '#0A0A0ACC', borderBottom: '1px solid #262626', backdropFilter: 'blur(20px)' }}>
+        <div className="mx-auto flex items-center justify-between h-16 px-4 lg:px-16" style={{ maxWidth: 1280 }}>
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Zap size={18} className="text-deep" />
+            <div className="w-8 h-8 flex items-center justify-center" style={{ background: '#D9FF00' }}>
+              <Zap size={18} style={{ color: '#0A0A0A' }} />
             </div>
-            <span className="font-bold text-lg tracking-tight">ZURI QR</span>
+            <span className="font-bold text-lg tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>ZURI QR</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-text-secondary hover:text-text-primary text-sm transition-colors">Fonctionnalités</a>
-            <a href="#pricing" className="text-text-secondary hover:text-text-primary text-sm transition-colors">Tarifs</a>
-            <Link href="/login" className="text-text-secondary hover:text-text-primary text-sm transition-colors">Se connecter</Link>
+            <a href="#features" className="text-sm transition-colors" style={{ color: '#A1A1A1' }} onMouseOver={e => e.currentTarget.style.color = '#E5E2E1'} onMouseOut={e => e.currentTarget.style.color = '#A1A1A1'}>Fonctionnalités</a>
+            <a href="#pricing" className="text-sm transition-colors" style={{ color: '#A1A1A1' }} onMouseOver={e => e.currentTarget.style.color = '#E5E2E1'} onMouseOut={e => e.currentTarget.style.color = '#A1A1A1'}>Tarifs</a>
+            <Link href="/login" className="text-sm transition-colors" style={{ color: '#A1A1A1' }} onMouseOver={e => e.currentTarget.style.color = '#E5E2E1'} onMouseOut={e => e.currentTarget.style.color = '#A1A1A1'}>Se connecter</Link>
           </nav>
 
           <div className="hidden md:block">
             <Link href="/dashboard">
-              <Button size="sm">Commencer gratuitement</Button>
+              <button className="h-9 px-4 text-sm font-semibold transition-all" style={{ background: '#D9FF00', color: '#0A0A0A', border: 'none' }}>
+                Commencer gratuitement
+              </button>
             </Link>
           </div>
 
-          <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden text-text-secondary">
+          <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden" style={{ color: '#A1A1A1' }}>
             {mobileMenu ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
         {mobileMenu && (
-          <div className="md:hidden border-t border-border p-4 space-y-3 bg-deep">
-            <a href="#features" className="block text-text-secondary py-2">Fonctionnalités</a>
-            <a href="#pricing" className="block text-text-secondary py-2">Tarifs</a>
-            <Link href="/login" className="block text-text-secondary py-2">Se connecter</Link>
+          <div className="md:hidden p-4 space-y-3" style={{ borderTop: '1px solid #262626', background: '#0A0A0A' }}>
+            <a href="#features" className="block py-2 text-sm" style={{ color: '#A1A1A1' }}>Fonctionnalités</a>
+            <a href="#pricing" className="block py-2 text-sm" style={{ color: '#A1A1A1' }}>Tarifs</a>
+            <Link href="/login" className="block py-2 text-sm" style={{ color: '#A1A1A1' }}>Se connecter</Link>
             <Link href="/dashboard">
-              <Button className="w-full">Commencer gratuitement</Button>
+              <button className="w-full h-10 text-sm font-semibold" style={{ background: '#D9FF00', color: '#0A0A0A', border: 'none' }}>Commencer gratuitement</button>
             </Link>
           </div>
         )}
       </header>
 
       {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20 lg:py-32">
+      <section className="mx-auto px-4 lg:px-16 py-20 lg:py-32" style={{ maxWidth: 1280 }}>
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold mb-6" style={{ background: 'rgba(217, 255, 0, 0.08)', border: '1px solid rgba(217, 255, 0, 0.2)', color: '#D9FF00', fontFamily: 'Geist, monospace', letterSpacing: '0.1em' }}>
               <Sparkles size={14} />
-              QR Codes Dynamiques
+              QR CODES DYNAMIQUES
             </div>
-            <h1 className="text-4xl lg:text-5xl font-bold leading-tight mb-4">
-              QR Codes qui
-              <span className="text-primary"> s&apos;adaptent</span>.
+            <h1 className="font-bold leading-tight mb-4" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 64, letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              QR Codes qui<br />
+              <span style={{ color: '#D9FF00' }}>s'adaptent</span>.
               <br />
-              <span className="text-secondary">Dynamiques</span>. Intelligents.
+              <span style={{ color: '#FFD700' }}>Dynamiques</span>. Intelligents.
             </h1>
-            <p className="text-text-secondary text-lg mb-8 max-w-lg">
+            <p className="text-lg mb-8" style={{ color: '#A1A1A1', fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.6', maxWidth: 480 }}>
               Générez, modifiez et trackez vos QR codes en temps réel — sans jamais les recréer.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/dashboard">
-                <Button size="lg" className="gap-2">
+                <button className="h-12 px-6 text-sm font-semibold flex items-center gap-2 transition-all" style={{ background: '#D9FF00', color: '#0A0A0A', border: 'none' }}>
                   <Zap size={18} />
                   Générer mon QR code
-                </Button>
+                </button>
               </Link>
               <a href="#features">
-                <Button variant="outline" size="lg">Voir la démo</Button>
+                <button className="h-12 px-6 text-sm font-semibold transition-all" style={{ background: 'transparent', color: '#E5E2E1', border: '1px solid #262626' }}>
+                  Voir la démo
+                </button>
               </a>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center justify-center">
-            <div className="w-72 h-72 rounded-2xl bg-surface border border-border flex items-center justify-center relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10" />
-              <div className="w-48 h-48 bg-deep rounded-xl flex items-center justify-center relative z-10">
-                <QrCode size={96} className="text-primary opacity-80" />
+            <div className="relative flex items-center justify-center" style={{ width: 300, height: 300, background: '#161616', border: '1px solid #262626' }}>
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(217,255,0,0.08), rgba(255,215,0,0.08))' }} />
+              <div className="flex items-center justify-center z-10" style={{ width: 200, height: 200, background: '#0A0A0A' }}>
+                <QrCode size={80} style={{ color: '#D9FF00', opacity: 0.8 }} />
               </div>
-              <div className="absolute -bottom-3 -right-3 w-24 h-24 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-center z-10">
-                <ScanLine size={32} className="text-primary" />
+              <div className="absolute -bottom-3 -right-3 flex items-center justify-center z-10" style={{ width: 80, height: 80, background: 'rgba(217,255,0,0.1)', border: '1px solid rgba(217,255,0,0.2)' }}>
+                <ScanLine size={28} style={{ color: '#D9FF00' }} />
               </div>
             </div>
           </div>
@@ -96,8 +97,8 @@ export default function LandingPage() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-border py-10">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8">
+      <section style={{ borderTop: '1px solid #262626', borderBottom: '1px solid #262626' }}>
+        <div className="mx-auto px-4 lg:px-16 py-10" style={{ maxWidth: 1280 }}>
           <div className="grid grid-cols-3 gap-8 text-center">
             {[
               { value: '12 847', label: 'QR codes actifs' },
@@ -105,8 +106,8 @@ export default function LandingPage() {
               { value: '< 50ms', label: 'Redirection' },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="text-2xl lg:text-3xl font-bold font-mono text-primary">{stat.value}</p>
-                <p className="text-text-secondary text-xs mt-1">{stat.label}</p>
+                <p className="text-2xl lg:text-3xl font-bold font-mono" style={{ color: '#D9FF00', fontFamily: 'Geist, monospace' }}>{stat.value}</p>
+                <p className="text-xs mt-1" style={{ color: '#8F9378' }}>{stat.label}</p>
               </div>
             ))}
           </div>
@@ -114,8 +115,8 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
-        <h2 className="text-2xl font-bold text-center mb-12">
+      <section id="features" className="mx-auto px-4 lg:px-16 py-20" style={{ maxWidth: 1280 }}>
+        <h2 className="text-center mb-12 font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 40, letterSpacing: '-0.01em' }}>
           Tout ce dont tu as besoin
         </h2>
         <div className="grid md:grid-cols-3 gap-6">
@@ -126,77 +127,116 @@ export default function LandingPage() {
           ].map((feature) => {
             const Icon = feature.icon;
             return (
-              <Card key={feature.title} hover className="text-center">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-                  <Icon size={24} />
+              <div key={feature.title} className="p-6 transition-all" style={{ background: '#161616', border: '1px solid #262626' }}
+                onMouseOver={e => e.currentTarget.style.background = '#1C1C1C'}
+                onMouseOut={e => e.currentTarget.style.background = '#161616'}
+              >
+                <div className="w-12 h-12 flex items-center justify-center mb-4" style={{ background: 'rgba(217,255,0,0.1)' }}>
+                  <Icon size={24} style={{ color: '#D9FF00' }} />
                 </div>
-                <h3 className="font-semibold text-text-primary mb-2">{feature.title}</h3>
-                <p className="text-text-secondary text-sm">{feature.desc}</p>
-              </Card>
+                <h3 className="font-semibold mb-2" style={{ color: '#E5E2E1', fontFamily: "'Hanken Grotesk', sans-serif" }}>{feature.title}</h3>
+                <p className="text-sm" style={{ color: '#A1A1A1' }}>{feature.desc}</p>
+              </div>
             );
           })}
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="max-w-7xl mx-auto px-4 lg:px-8 py-20 border-t border-border">
-        <h2 className="text-2xl font-bold text-center mb-4">Des tarifs simples</h2>
-        <p className="text-text-secondary text-center mb-12">Commence gratuitement, upgrade quand tu veux</p>
-        <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          <Card>
-            <h3 className="font-semibold text-text-primary mb-2">Gratuit</h3>
-            <p className="text-3xl font-bold font-mono text-text-primary mb-4">0 FCFA</p>
-            <ul className="space-y-2 text-sm text-text-secondary mb-6">
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> 5 QR codes max</li>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> Redirection dynamique</li>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> Analytics 7 jours</li>
-              <li className="flex items-center gap-2"><span className="text-primary">✓</span> Export PNG</li>
-            </ul>
-            <Link href="/dashboard">
-              <Button variant="outline" className="w-full">Commencer</Button>
-            </Link>
-          </Card>
-
-          <Card className="border-secondary/30 bg-secondary/5 relative">
-            <div className="absolute -top-3 right-4">
-              <Badge variant="warning">POPULAIRE</Badge>
-            </div>
-            <h3 className="font-semibold text-text-primary mb-2">PRO</h3>
-            <p className="text-3xl font-bold font-mono text-text-primary mb-4">
-              2 900 FCFA
-              <span className="text-sm text-text-secondary font-sans font-normal">/mois</span>
+      <section id="pricing" className="mx-auto px-4 lg:px-16 py-20" style={{ maxWidth: 1280, borderTop: '1px solid #262626' }}>
+        <h2 className="text-center mb-4 font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 40, letterSpacing: '-0.01em' }}>
+          Des tarifs simples
+        </h2>
+        <p className="text-center mb-12" style={{ color: '#A1A1A1', fontFamily: "'Hanken Grotesk', sans-serif" }}>Commence gratuitement, upgrade quand tu veux</p>
+        <div className="grid md:grid-cols-2 gap-6 mx-auto" style={{ maxWidth: 640 }}>
+          {/* Free */}
+          <div className="p-8" style={{ background: '#161616', border: '1px solid #262626' }}>
+            <h3 className="font-semibold mb-2" style={{ color: '#E5E2E1', fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 24 }}>Gratuit</h3>
+            <p className="mb-4 font-bold font-mono" style={{ fontSize: 36, fontFamily: 'Geist, monospace', color: '#E5E2E1' }}>
+              0 FCFA
+              <span className="text-sm font-sans font-normal" style={{ color: '#A1A1A1' }}>/mois</span>
             </p>
-            <ul className="space-y-2 text-sm text-text-secondary mb-6">
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> QR codes illimités</li>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Brand-Match IA</li>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Analytics 90 jours</li>
-              <li className="flex items-center gap-2"><span className="text-secondary">✓</span> Export SVG + PDF</li>
+            <ul className="space-y-3 text-sm mb-8" style={{ color: '#C5C9AC' }}>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#D9FF00' }} /> 5 QR codes max</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#D9FF00' }} /> Redirection dynamique</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#D9FF00' }} /> Analytics 7 jours</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#D9FF00' }} /> Export PNG</li>
             </ul>
             <Link href="/dashboard">
-              <Button variant="secondary" className="w-full gap-1.5">
+              <button className="w-full h-11 text-sm font-semibold transition-all" style={{ background: '#1C1C1C', color: '#E5E2E1', border: '1px solid #262626' }}
+                onMouseOver={e => e.currentTarget.style.background = '#2A2A2A'}
+                onMouseOut={e => e.currentTarget.style.background = '#1C1C1C'}
+              >
+                Commencer
+              </button>
+            </Link>
+          </div>
+
+          {/* PRO */}
+          <div className="p-8 relative" style={{ background: 'rgba(217,255,0,0.04)', border: '1px solid rgba(217,255,0,0.3)' }}>
+            <div className="absolute -top-3 right-4 px-3 py-1 text-xs font-semibold" style={{ fontFamily: 'Geist, monospace', letterSpacing: '0.1em', background: '#D9FF00', color: '#0A0A0A' }}>
+              POPULAIRE
+            </div>
+            <h3 className="font-semibold mb-2" style={{ color: '#E5E2E1', fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 24 }}>PRO</h3>
+            <p className="mb-4 font-bold font-mono" style={{ fontSize: 36, fontFamily: 'Geist, monospace', color: '#D9FF00' }}>
+              2 900 FCFA
+              <span className="text-sm font-sans font-normal" style={{ color: '#A1A1A1' }}>/mois</span>
+            </p>
+            <ul className="space-y-3 text-sm mb-8" style={{ color: '#C5C9AC' }}>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#FFD700' }} /> QR codes illimités</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#FFD700' }} /> Brand-Match IA</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#FFD700' }} /> Analytics 90 jours</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#FFD700' }} /> Export SVG + PDF</li>
+              <li className="flex items-center gap-2"><Check size={14} style={{ color: '#FFD700' }} /> Priorité support</li>
+            </ul>
+            <Link href="/dashboard">
+              <button className="w-full h-11 text-sm font-semibold flex items-center justify-center gap-1.5 transition-all" style={{ background: '#D9FF00', color: '#0A0A0A', border: 'none', boxShadow: '0 0 20px rgba(217,255,0,0.15)' }}
+                onMouseOver={e => e.currentTarget.style.boxShadow = '0 0 30px rgba(217,255,0,0.3)'}
+                onMouseOut={e => e.currentTarget.style.boxShadow = '0 0 20px rgba(217,255,0,0.15)'}
+              >
                 <Zap size={16} />
                 Choisir PRO
-              </Button>
+              </button>
             </Link>
-          </Card>
+          </div>
         </div>
+
+        {/* Enterprise note */}
+        <p className="text-center mt-8 text-sm" style={{ color: '#8F9378', fontFamily: 'Geist, monospace', letterSpacing: '0.05em' }}>
+          BESOIN DE PLUS ? CONTACTEZ-NOUS POUR UNE OFFRE PERSONNALISÉE
+        </p>
+      </section>
+
+      {/* CTA Section */}
+      <section className="mx-auto px-4 lg:px-16 py-20 text-center" style={{ maxWidth: 1280, borderTop: '1px solid #262626' }}>
+        <h2 className="font-bold mb-4" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 40, letterSpacing: '-0.01em' }}>
+          Prêt à <span style={{ color: '#D9FF00' }}>digitaliser</span> vos QR codes ?
+        </h2>
+        <p className="mb-8" style={{ color: '#A1A1A1', fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 18 }}>
+          Rejoignez les entreprises qui font confiance à Zuri QR.
+        </p>
+        <Link href="/dashboard">
+          <button className="h-12 px-8 text-sm font-semibold transition-all" style={{ background: '#D9FF00', color: '#0A0A0A', border: 'none' }}>
+            Commencer gratuitement → 
+          </button>
+        </Link>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer className="py-8 px-4 lg:px-16" style={{ borderTop: '1px solid #262626', maxWidth: 1280, margin: '0 auto' }}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <Zap size={12} className="text-deep" />
+            <div className="w-6 h-6 flex items-center justify-center" style={{ background: '#D9FF00' }}>
+              <Zap size={12} style={{ color: '#0A0A0A' }} />
             </div>
-            <span className="font-bold text-sm">ZURI QR</span>
+            <span className="font-bold text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>ZURI QR</span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-text-secondary">
-            <a href="#" className="hover:text-text-primary">Confidentialité</a>
-            <a href="#" className="hover:text-text-primary">CGU</a>
-            <a href="#" className="hover:text-text-primary">Contact</a>
+          <div className="flex items-center gap-6 text-sm" style={{ color: '#A1A1A1' }}>
+            <a href="#" className="hover:underline">Confidentialité</a>
+            <a href="#" className="hover:underline">CGU</a>
+            <a href="#" className="hover:underline">Contact</a>
           </div>
-          <p className="text-xs text-text-muted">© 2026 Zuri QR</p>
+          <p className="text-xs" style={{ color: '#8F9378' }}>© 2026 Zuri QR</p>
         </div>
       </footer>
     </div>
