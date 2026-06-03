@@ -151,18 +151,21 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
   }
 
   return (
-    <div className="min-h-screen bg-deep flex">
+    <div className="min-h-screen bg-deep flex relative">
+      <Link href="/" className="absolute top-4 left-4 z-20 flex items-center gap-1.5 text-sm text-text-muted hover:text-text-secondary transition-colors">
+        ← Retour à l&apos;accueil
+      </Link>
       <div className="hidden lg:flex w-[45%] bg-surface border-r border-border flex-col items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `
-            linear-gradient(rgba(34,197,94,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(34,197,94,0.1) 1px, transparent 1px)
+            linear-gradient(rgba(217,255,0,0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(217,255,0,0.1) 1px, transparent 1px)
           `,
           backgroundSize: '40px 40px',
         }} />
         <div className="relative z-10 text-center">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Zap size={48} className="text-primary" />
+          <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center" style={{ background: 'rgba(217,255,0,0.1)', border: '1px solid rgba(217,255,0,0.2)' }}>
+            <Zap size={48} style={{ color: '#D9FF00' }} />
           </div>
           <h2 className="text-2xl font-bold text-text-primary mb-2">ZURI QR</h2>
           <p className="text-text-secondary text-sm max-w-xs mx-auto">
@@ -171,7 +174,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
           <div className="mt-8 flex flex-col gap-2 text-left">
             {['QR codes modifiables sans les recréer', 'Analytics en temps réel', 'Brand-Match IA (PRO)'].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm text-text-secondary">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="w-1.5 h-1.5 bg-primary flex-shrink-0" style={{ background: '#D9FF00' }} />
                 {f}
               </div>
             ))}
