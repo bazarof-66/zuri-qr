@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Upload, Download, Image, FileText, Palette, QrCode, Loader2, RefreshCw } from 'lucide-react';
 
-type DotType = 'square' | 'rounded' | 'dots' | 'extra-rounded';
-type CornerType = 'square' | 'extra-rounded' | 'dot';
+import { drawQRCanvas } from '@/lib/qr-draw';
+import type { DotType, CornerType } from '@/lib/qr-draw';
+type QRModules = { data: Uint8Array; size: number };
 
 const dotTypes: { value: DotType; label: string }[] = [
   { value: 'square', label: 'Carré' },
@@ -35,125 +36,7 @@ function generateShortCode(): string {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-type QRModules = { data: Uint8Array; size: number };
 
-function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, radius: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + size - radius, y);
-  ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
-  ctx.lineTo(x + size, y + size - radius);
-  ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
-  ctx.lineTo(x + radius, y + size);
-  ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawQRCanvas(
-  canvas: HTMLCanvasElement,
-  mod: QRModules,
-  fgColor: string,
-  bgColor: string,
-  dotType: DotType,
-  cornerType: CornerType,
-) {
-  const size = canvas.width;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-
-  const count = mod.size;
-  const cellSize = size / count;
-  const radius = cellSize * 0.3;
-  const dotRatio = 0.6;
-
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = fgColor;
-
-  for (let row = 0; row < count; row++) {
-    for (let col = 0; col < count; col++) {
-      if (mod.data[row * count + col] !== 1) continue;
-
-      const x = col * cellSize;
-      const y = row * cellSize;
-      const isFinder = (row < 7 && col < 7) ||
-                       (row < 7 && col >= count - 7) ||
-                       (row >= count - 7 && col < 7);
-
-      if (isFinder) {
-        if (row === 0 && col === 0) { drawFinderPattern(ctx, x, y, cellSize, fgColor, bgColor, cornerType); }
-        else if (row === 0 && col >= count - 7) { drawFinderPattern(ctx, x, y, cellSize, fgColor, bgColor, cornerType); }
-        else if (row >= count - 7 && col === 0) { drawFinderPattern(ctx, x, y, cellSize, fgColor, bgColor, cornerType); }
-        else { ctx.fillRect(x, y, cellSize, cellSize); }
-        continue;
-      }
-
-      const cx = x + cellSize / 2;
-
-      switch (dotType) {
-        case 'square':
-          ctx.fillRect(x, y, cellSize, cellSize);
-          break;
-        case 'rounded':
-          drawRoundedRect(ctx, x, y, cellSize, radius);
-          break;
-        case 'dots':
-          ctx.beginPath();
-          ctx.arc(cx, y + cellSize / 2, cellSize * dotRatio / 2, 0, Math.PI * 2);
-          ctx.fill();
-          break;
-        case 'extra-rounded':
-          drawRoundedRect(ctx, x + cellSize * 0.05, y + cellSize * 0.05, cellSize * 0.9, cellSize * 0.3);
-          break;
-      }
-    }
-  }
-}
-
-function drawFinderPattern(
-  ctx: CanvasRenderingContext2D,
-  startX: number, startY: number,
-  cellSize: number,
-  fgColor: string,
-  bgColor: string,
-  cornerType: CornerType,
-) {
-  const size = cellSize * 7;
-  const outerR = size / 2;
-  const innerR = cellSize * 3 / 2 + cellSize * 0.2;
-  const centerR = cellSize * 0.8;
-
-  ctx.fillStyle = bgColor;
-  if (cornerType === 'square') {
-    ctx.fillRect(startX, startY, size, size);
-  } else {
-    ctx.beginPath();
-    ctx.arc(startX + outerR, startY + outerR, outerR, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.fillStyle = fgColor;
-  if (cornerType === 'square') {
-    ctx.fillRect(startX + cellSize, startY + cellSize, cellSize * 5, cellSize * 5);
-  } else {
-    ctx.beginPath();
-    ctx.arc(startX + outerR, startY + outerR, innerR, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const cx = startX + outerR;
-  const cy = startY + outerR;
-  if (cornerType === 'dot') {
-    ctx.beginPath();
-    ctx.arc(cx, cy, centerR, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.fillRect(startX + cellSize * 2.5, startY + cellSize * 2.5, cellSize * 2, cellSize * 2);
-  }
-}
 
 interface QRGeneratorProps {
   onSave?: (data: { name: string; url: string; shortCode: string }) => void;
@@ -182,10 +65,8 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
     try {
       const { create } = await import('qrcode');
       const canvas = canvasRef.current;
-      canvas.width = 220;
-      canvas.height = 220;
       const qrResult = create(qrDataUrl, { errorCorrectionLevel: 'H' });
-      drawQRCanvas(canvas, qrResult.modules as QRModules, fgColor, bgColor, dotType, cornerType);
+      drawQRCanvas(canvas, 220, qrResult.modules as QRModules, fgColor, bgColor, dotType, cornerType);
 
       if (logoFile) {
         const ctx = canvas.getContext('2d');

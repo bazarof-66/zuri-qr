@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useParams, useRouter } from 'next/navigation';
 import { formatNumber, formatDate } from '@/lib/utils';
+import { drawQRCanvas } from '@/lib/qr-draw';
 import { ArrowLeft, ExternalLink, Trash2, Pause, Play, QrCode, Copy, Download, ScanLine } from 'lucide-react';
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
@@ -42,37 +43,24 @@ export default function QRCodeDetailPage() {
 
   useEffect(() => {
     if (!qr || !canvasRef.current) return;
-    const drawQR = async () => {
+    (async () => {
       try {
         const { create } = await import('qrcode');
         const canvas = canvasRef.current;
         if (!canvas) return;
         const redirectDomain = process.env.NEXT_PUBLIC_FIREBASE_REDIRECT_DOMAIN || 'https://zuri-qr.vercel.app';
         const qrDataUrl = `${redirectDomain}/r/${qr.shortCode}`;
-        canvas.width = 200;
-        canvas.height = 200;
         const result = create(qrDataUrl, { errorCorrectionLevel: 'H' });
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const mod = result.modules as { data: Uint8Array; size: number };
         const fg = qr.design?.colorFg || '#22C55E';
         const bg = qr.design?.colorBg || '#FFFFFF';
-        const mod = result.modules as { data: Uint8Array; size: number };
-        const cellSize = 200 / mod.size;
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, 200, 200);
-        ctx.fillStyle = fg;
-        for (let r = 0; r < mod.size; r++) {
-          for (let c = 0; c < mod.size; c++) {
-            if (mod.data[r * mod.size + c] === 1) {
-              ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
-            }
-          }
-        }
+        const dotType = qr.design?.dotType || 'rounded';
+        const cornerType = qr.design?.cornerType || 'extra-rounded';
+        drawQRCanvas(canvas, 200, mod, fg, bg, dotType, cornerType);
       } catch (e) {
         console.error('[ZURI] QR draw error:', e);
       }
-    };
-    drawQR();
+    })();
   }, [qr]);
 
   const handleUpdate = async () => {
