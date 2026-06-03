@@ -1,10 +1,20 @@
 'use client';
 
-import { QRGenerator } from '@/components/qr/QRGenerator';
+import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+
+const QRGenerator = dynamic(() => import('@/components/qr/QRGenerator').then(m => m.QRGenerator), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col items-center justify-center py-20">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
+      <p className="text-text-muted text-sm font-mono">Chargement du studio...</p>
+    </div>
+  ),
+});
 
 export default function StudioPage() {
   return (

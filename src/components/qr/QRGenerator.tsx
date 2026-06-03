@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import QRCodeStyling, { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
+import type { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
 import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -40,7 +40,7 @@ interface QRGeneratorProps {
 export function QRGenerator({ onSave }: QRGeneratorProps) {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
-  const qrRef = useRef<QRCodeStyling | null>(null);
+  const qrRef = useRef<any>(null);
 
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
@@ -58,9 +58,10 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
 
   const [qrError, setQrError] = useState(false);
 
-  const generateQR = useCallback(() => {
+  const generateQR = useCallback(async () => {
     if (!url) return;
     try {
+      const QRCodeStyling = (await import('qr-code-styling')).default;
       const qr = new QRCodeStyling({
         width: 220,
         height: 220,
@@ -104,7 +105,7 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
   }, [url, qrDataUrl, fgColor, bgColor, dotType, cornerType, logoFile]);
 
   useEffect(() => {
-    if (url) generateQR();
+    if (url) { generateQR(); }
   }, [url, fgColor, bgColor, dotType, cornerType, logoFile, qrDataUrl, generateQR]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -351,7 +352,7 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
             {url && qrError ? (
               <div className="text-center py-4">
                 <p className="text-danger text-xs mb-2">Erreur de génération</p>
-                <button onClick={generateQR} className="text-primary text-xs underline">Réessayer</button>
+                <button onClick={() => generateQR()} className="text-primary text-xs underline">Réessayer</button>
               </div>
             ) : url ? (
               <div className="p-3 rounded-xl bg-deep border border-border shadow-lg shadow-primary/5">
