@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── UTILISATEURS ───────────────────────────────
+    // Lecture/écriture limitée au propriétaire du document
+    match /users/{userId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid == userId;
+    }
+
+    // ─── QR CODES ────────────────────────────────────
+    // CRUD strict : seul le propriétaire (ownerId) peut lire/écrire
+    match /qrcodes/{qrId} {
+      allow read, update, delete: if request.auth != null 
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null 
+        && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // ─── ANALYTICS (sous-collection de qrcodes) ─────
+    // La Cloud Function écrit via Admin SDK (pas de règle create)
+    // Le propriétaire du QR parent peut lire
+    match /qrcodes/{qrId}/analytics/{scanId} {
+      allow read: if request.auth != null 
+        && get(/databases/$(database)/documents/qrcodes/$(qrId)).data.ownerId == request.auth.uid;
+      allow write: if false; // Uniquement via Cloud Function Admin SDK
+    }
+
+    // ─── REDIRECTS (collection plate pour redirection) ─
+    // Lecture publique (nécessaire pour le scan)
+    // Écriture par le propriétaire uniquement
+    match /redirects/{shortCode} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null 
+        && request.resource.data.ownerId == request.auth.uid;
+    }
+  }
+}
