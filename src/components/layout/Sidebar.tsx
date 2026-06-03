@@ -8,6 +8,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getInitials } from '@/lib/utils';
+import { LogOut } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -24,7 +25,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const displayName = profile?.displayName || profile?.email?.split('@')[0] || 'Utilisateur';
   const initials = getInitials(displayName);
   const userPlan = profile?.plan ?? 'free';
@@ -80,7 +81,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           })}
         </div>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-1">
           <Link
             href="/settings"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-all"
@@ -95,6 +96,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               </Badge>
             </div>
           </Link>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-danger hover:bg-danger/10 transition-all w-full"
+          >
+            <LogOut size={18} />
+            Déconnexion
+          </button>
         </div>
       </aside>
     </>

@@ -1,6 +1,7 @@
 'use client';
 
 import { QRGenerator } from '@/components/qr/QRGenerator';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -20,7 +21,9 @@ export default function StudioPage() {
         </div>
       </div>
 
-      <QRGenerator />
+      <ErrorBoundary>
+        <QRGenerator />
+      </ErrorBoundary>
     </div>
   );
 }
