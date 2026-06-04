@@ -140,7 +140,21 @@ export function AuthScreen() {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithPopup(_auth, provider);
+      const cred = await signInWithPopup(_auth, provider);
+      const uid = cred.user.uid;
+      const { getDoc } = await import('firebase/firestore');
+      const snap = await getDoc(doc(_db, 'users', uid));
+      if (!snap.exists()) {
+        await setDoc(doc(_db, 'users', uid), {
+          email: cred.user.email,
+          displayName: cred.user.displayName,
+          plan: 'free',
+          qrCount: 0,
+          maxQRCodes: 5,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
       router.push('/dashboard');
     } catch (err: any) {
       // Gestion des erreurs spécifiques Google

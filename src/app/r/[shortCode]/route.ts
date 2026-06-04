@@ -1,30 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerDb } from '@/lib/firebase-server';
-import { doc, getDoc, collection, addDoc, updateDoc, increment } from 'firebase/firestore';
 
-function detectDevice(ua: string): string {
-  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
-  if (/Android/i.test(ua)) return 'android';
-  if (/Windows|Mac|Linux|CrOS/i.test(ua)) return 'desktop';
-  return 'unknown';
+const FIREBASE_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+async function getRedirectDoc(shortCode: string) {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/redirects/${shortCode}?key=${FIREBASE_API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (!data.fields) return null;
+  const fields = data.fields;
+  return {
+    targetUrl: fields.targetUrl?.stringValue || '',
+    qrId: fields.qrId?.stringValue || '',
+    status: fields.status?.stringValue || '',
+  };
 }
 
-function detectBrowser(ua: string): string {
-  if (/Chrome/i.test(ua) && !/Edg/i.test(ua) && !/OPR/i.test(ua)) return 'Chrome';
-  if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) return 'Safari';
-  if (/Firefox/i.test(ua)) return 'Firefox';
-  if (/Edg/i.test(ua)) return 'Edge';
-  if (/OPR/i.test(ua)) return 'Opera';
-  return 'Other';
+async function writeAnalytics(qrId: string, data: {
+  deviceType: string; browserName: string; osName: string;
+  country: string; ip: string; referer: string; userAgent: string; scannedAt: string;
+}) {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/qrcodes/${qrId}/analytics?key=${FIREBASE_API_KEY}`;
+  const fields: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data)) {
+    fields[k] = { stringValue: v };
+  }
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  }).catch(() => {});
 }
 
-function detectOS(ua: string): string {
-  if (/Windows/i.test(ua)) return 'Windows';
-  if (/Mac OS/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua)) return 'macOS';
-  if (/Linux/i.test(ua) && !/Android/i.test(ua)) return 'Linux';
-  if (/Android/i.test(ua)) return 'Android';
-  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
-  return 'Other';
+async function incrementScans(qrId: string) {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/qrcodes/${qrId}:commit?key=${FIREBASE_API_KEY}`;
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      writes: [{
+        transform: {
+          document: `projects/${PROJECT_ID}/databases/(default)/documents/qrcodes/${qrId}`,
+          fieldTransforms: [
+            { fieldPath: 'totalScans', increment: { integerValue: '1' } },
+            { fieldPath: 'lastScannedAt', setToServerValue: 'REQUEST_TIME' },
+          ],
+        },
+      }],
+    }),
+  }).catch(() => {});
 }
 
 export async function GET(
@@ -33,58 +58,35 @@ export async function GET(
 ) {
   const { shortCode } = await params;
 
-  try {
-    const db = getServerDb();
-    const redirectSnap = await getDoc(doc(db, 'redirects', shortCode));
+  if (!FIREBASE_API_KEY || !PROJECT_ID) {
+    return NextResponse.json({ error: 'Firebase non configuré' }, { status: 500 });
+  }
 
-    if (!redirectSnap.exists()) {
-      return NextResponse.redirect(new URL('/', request.url), 302);
-    }
-
-    const data = redirectSnap.data();
-    const targetUrl = data.targetUrl as string;
-    const qrId = data.qrId as string;
-
-    // ⚡ REDIRIGE VERS LA CIBLE IMMÉDIATEMENT
-    const response = NextResponse.redirect(new URL(targetUrl), 302);
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-
-    // Track analytics en arrière-plan (ne bloque pas la redirection)
-    if (qrId) {
-      const ua = request.headers.get('user-agent') || '';
-      const device = detectDevice(ua);
-      const browser = detectBrowser(ua);
-      const os = detectOS(ua);
-      const country = request.headers.get('x-vercel-ip-country') ||
-                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                      'unknown';
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                 request.headers.get('x-real-ip') ||
-                 'unknown';
-      const referer = request.headers.get('referer') || '';
-
-      addDoc(collection(db, 'qrcodes', qrId, 'analytics'), {
-        deviceType: device,
-        browserName: browser,
-        osName: os,
-        country,
-        ip,
-        referer,
-        userAgent: ua,
-        scannedAt: new Date().toISOString(),
-      }).catch(() => {});
-
-      updateDoc(doc(db, 'qrcodes', qrId), {
-        totalScans: increment(1),
-        lastScannedAt: new Date().toISOString(),
-      }).catch(() => {});
-    }
-
-    return response;
-  } catch (err) {
-    console.error('[ZURI] Erreur redirect:', err);
+  const doc = await getRedirectDoc(shortCode);
+  if (!doc || doc.status === 'deleted') {
     return NextResponse.redirect(new URL('/', request.url), 302);
   }
+
+  const targetUrl = doc.targetUrl.startsWith('http') ? doc.targetUrl : `https://${doc.targetUrl}`;
+  const qrId = doc.qrId;
+
+  const response = NextResponse.redirect(new URL(targetUrl), 302);
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+
+  if (qrId) {
+    const ua = request.headers.get('user-agent') || '';
+    const device = /iPhone|iPad|iPod/i.test(ua) ? 'ios' : /Android/i.test(ua) ? 'android' : /Windows|Mac|Linux|CrOS/i.test(ua) ? 'desktop' : 'unknown';
+    const country = request.headers.get('x-vercel-ip-country') || 'unknown';
+
+    writeAnalytics(qrId, {
+      deviceType: device, browserName: '', osName: '',
+      country, ip: '', referer: request.headers.get('referer') || '',
+      userAgent: ua, scannedAt: new Date().toISOString(),
+    });
+    incrementScans(qrId);
+  }
+
+  return response;
 }
