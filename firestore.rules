@@ -19,12 +19,12 @@ service cloud.firestore {
     }
 
     // ─── ANALYTICS (sous-collection de qrcodes) ─────
-    // La Cloud Function écrit via Admin SDK (pas de règle create)
-    // Le propriétaire du QR parent peut lire
+    // Écriture publique (nécessaire pour le tracking des scans via la route /r/[shortCode])
+    // Lecture par le propriétaire du QR parent uniquement
     match /qrcodes/{qrId}/analytics/{scanId} {
       allow read: if request.auth != null 
         && get(/databases/$(database)/documents/qrcodes/$(qrId)).data.ownerId == request.auth.uid;
-      allow write: if false; // Uniquement via Cloud Function Admin SDK
+      allow create: if exists(/databases/$(database)/documents/qrcodes/$(qrId));
     }
 
     // ─── REDIRECTS (collection plate pour redirection) ─

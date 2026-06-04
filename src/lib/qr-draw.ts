@@ -38,9 +38,9 @@ function drawFinderPattern(
 
   ctx.fillStyle = fg;
   if (style === 'dot') {
-    ctx.beginPath(); ctx.arc(cx, cy, cellSize * 0.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, cellSize * 1.2, 0, Math.PI * 2); ctx.fill();
   } else {
-    ctx.fillRect(startX + cellSize * 2.5, startY + cellSize * 2.5, cellSize * 2, cellSize * 2);
+    ctx.fillRect(startX + cellSize * 2, startY + cellSize * 2, cellSize * 3, cellSize * 3);
   }
 }
 

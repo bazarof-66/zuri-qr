@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerDb } from '@/lib/firebase-server';
-import { doc, getDoc, collection, addDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, updateDoc, increment } from 'firebase/firestore';
 
 function detectDevice(ua: string): string {
   if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
@@ -32,58 +32,59 @@ export async function GET(
   { params }: { params: Promise<{ shortCode: string }> }
 ) {
   const { shortCode } = await params;
-  const redirectUrl = new URL('/', request.url);
 
   try {
     const db = getServerDb();
     const redirectSnap = await getDoc(doc(db, 'redirects', shortCode));
 
     if (!redirectSnap.exists()) {
-      return NextResponse.redirect(redirectUrl, 302);
+      return NextResponse.redirect(new URL('/', request.url), 302);
     }
 
     const data = redirectSnap.data();
     const targetUrl = data.targetUrl as string;
     const qrId = data.qrId as string;
-    const ua = request.headers.get('user-agent') || '';
-    const device = detectDevice(ua);
-    const browser = detectBrowser(ua);
-    const os = detectOS(ua);
-    const country = request.headers.get('x-vercel-ip-country') ||
-                    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                    'unknown';
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown';
-    const referer = request.headers.get('referer') || '';
 
-    const scanData = {
-      deviceType: device,
-      browserName: browser,
-      osName: os,
-      country,
-      ip,
-      referer,
-      userAgent: ua,
-      scannedAt: serverTimestamp(),
-    };
-
-    await Promise.all([
-      addDoc(collection(db, 'qrcodes', qrId, 'analytics'), scanData),
-      updateDoc(doc(db, 'qrcodes', qrId), {
-        totalScans: increment(1),
-        lastScannedAt: serverTimestamp(),
-      }),
-    ]);
-
+    // ⚡ REDIRIGE VERS LA CIBLE IMMÉDIATEMENT
     const response = NextResponse.redirect(new URL(targetUrl), 302);
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
 
+    // Track analytics en arrière-plan (ne bloque pas la redirection)
+    if (qrId) {
+      const ua = request.headers.get('user-agent') || '';
+      const device = detectDevice(ua);
+      const browser = detectBrowser(ua);
+      const os = detectOS(ua);
+      const country = request.headers.get('x-vercel-ip-country') ||
+                      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                      'unknown';
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                 request.headers.get('x-real-ip') ||
+                 'unknown';
+      const referer = request.headers.get('referer') || '';
+
+      addDoc(collection(db, 'qrcodes', qrId, 'analytics'), {
+        deviceType: device,
+        browserName: browser,
+        osName: os,
+        country,
+        ip,
+        referer,
+        userAgent: ua,
+        scannedAt: new Date().toISOString(),
+      }).catch(() => {});
+
+      updateDoc(doc(db, 'qrcodes', qrId), {
+        totalScans: increment(1),
+        lastScannedAt: new Date().toISOString(),
+      }).catch(() => {});
+    }
+
     return response;
   } catch (err) {
     console.error('[ZURI] Erreur redirect:', err);
-    return NextResponse.redirect(redirectUrl, 302);
+    return NextResponse.redirect(new URL('/', request.url), 302);
   }
 }
