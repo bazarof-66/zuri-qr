@@ -59,8 +59,55 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
   const [saving, setSaving] = useState(false);
   const [qrError, setQrError] = useState(false);
 
-  const generateQR = useCallback(async () => {
+  useEffect(() => {
     if (!url || !canvasRef.current) return;
+    
+    const generateQR = async () => {
+      setQrError(false);
+      try {
+        const { create } = await import('qrcode');
+        const canvas = canvasRef.current!;
+        const qrResult = create(qrDataUrl, { errorCorrectionLevel: 'H' });
+        drawQRCanvas(canvas, 220, qrResult.modules as QRModules, fgColor, bgColor, dotType, cornerType);
+
+        if (logoFile) {
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+          const img = document.createElement('img');
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              const logoSize = canvas.width * 0.3;
+              const x = (canvas.width - logoSize) / 2;
+              const y = (canvas.height - logoSize) / 2;
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(canvas.width / 2, canvas.height / 2, logoSize / 2 + 4, 0, Math.PI * 2);
+              ctx.fillStyle = bgColor;
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(canvas.width / 2, canvas.height / 2, logoSize / 2, 0, Math.PI * 2);
+              ctx.clip();
+              ctx.drawImage(img, x, y, logoSize, logoSize);
+              ctx.restore();
+              resolve();
+            };
+            img.onerror = reject;
+            img.src = logoFile;
+          });
+        }
+      } catch (e) {
+        console.error('[ZURI] QR generation error:', e);
+        setQrError(true);
+      }
+    };
+
+    generateQR();
+  }, [url, qrDataUrl, fgColor, bgColor, dotType, cornerType, logoFile]);
+
+  const handleRetryQR = async () => {
+    if (!url || !canvasRef.current) return;
+    
     setQrError(false);
     try {
       const { create } = await import('qrcode');
@@ -98,11 +145,7 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
       console.error('[ZURI] QR generation error:', e);
       setQrError(true);
     }
-  }, [url, qrDataUrl, fgColor, bgColor, dotType, cornerType, logoFile]);
-
-  useEffect(() => {
-    if (url) generateQR();
-  }, [url, fgColor, bgColor, dotType, cornerType, logoFile, qrDataUrl, generateQR]);
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -352,7 +395,7 @@ export function QRGenerator({ onSave }: QRGeneratorProps) {
             {url && qrError ? (
               <div className="text-center py-4">
                 <p className="text-danger text-xs mb-2">Erreur de génération</p>
-                <button onClick={() => generateQR()} className="flex items-center gap-1 text-primary text-xs underline mx-auto">
+                <button onClick={() => handleRetryQR()} className="flex items-center gap-1 text-primary text-xs underline mx-auto">
                   <RefreshCw size={12} /> Réessayer
                 </button>
               </div>

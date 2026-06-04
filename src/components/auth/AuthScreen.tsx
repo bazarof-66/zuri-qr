@@ -37,6 +37,8 @@ export function AuthScreen() {
     getRedirectResult(_auth).then(async (cred) => {
       if (!cred) return;
       setLoading(true);
+      setError('✓ Connexion réussie, redirection...');
+      setErrorType('success');
       try {
         const uid = cred.user.uid;
         const { getDoc } = await import('firebase/firestore');
@@ -52,7 +54,8 @@ export function AuthScreen() {
             updatedAt: serverTimestamp(),
           });
         }
-        router.push('/dashboard');
+        // Redirection réussie après 500ms pour afficher le message
+        setTimeout(() => router.push('/dashboard'), 500);
       } catch (e) {
         console.error('[ZURI] Redirect result error:', e);
         setError('Erreur lors de la connexion après redirection.');
@@ -90,10 +93,12 @@ export function AuthScreen() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(_auth, email, password);
-      router.push('/dashboard');
+      setError('✓ Connexion réussie, redirection...');
+      setErrorType('success');
+      setTimeout(() => router.push('/dashboard'), 500);
     } catch (err: any) {
       setError(translateError(err.code));
-    } finally {
+      setErrorType('auth');
       setLoading(false);
     }
   };
@@ -119,54 +124,77 @@ export function AuthScreen() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      router.push('/dashboard');
+      setError('✓ Compte créé et connecté, redirection...');
+      setErrorType('success');
+      setTimeout(() => router.push('/dashboard'), 500);
     } catch (err: any) {
       setError(translateError(err.code));
-    } finally {
+      setErrorType('auth');
       setLoading(false);
     }
   };
 
   const handleGoogle = async () => {
     setError('');
-    setErrorType('google');
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(_auth, provider);
+      router.push('/dashboard');
     } catch (err: any) {
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+      // Gestion des erreurs spécifiques Google
+      if (err.code === 'auth/operation-not-allowed') {
+        setError(
+          '🔴 Google Sign-In n\'est pas activé\n\n' +
+          'Solution: Firebase Console → Authentication → Sign-in method → Google → Activer'
+        );
+        setErrorType('google');
+        setLoading(false);
+        return;
+      }
+      if (err.code === 'auth/unauthorized-domain') {
+        setError(
+          '🔴 Domaine non autorisé: ' + window.location.hostname + '\n\n' +
+          'Solution: Firebase Console → Authentication → Settings → Authorized domains → Ajouter ce domaine'
+        );
+        setErrorType('google');
+        setLoading(false);
+        return;
+      }
+      if (err.code === 'auth/popup-blocked') {
         try {
+          setError('📲 Popup bloqué, passage à la redirection...');
+          setErrorType('google');
           const provider = new GoogleAuthProvider();
           provider.setCustomParameters({ prompt: 'select_account' });
           await signInWithRedirect(_auth, provider);
           return;
         } catch (redirectErr: any) {
           setError(translateError(redirectErr.code));
+          setErrorType('auth');
           setLoading(false);
           return;
         }
       }
-      if (err.code === 'auth/operation-not-allowed') {
-        setError(
-          'Google Sign-In n\'est pas activé dans Firebase Console.\n\n' +
-          'Va dans Firebase Console → Authentication → Sign-in method → ' +
-          'Google → Activer, puis réessaie.'
-        );
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Connexion annulée');
+        setErrorType('auth');
         setLoading(false);
         return;
       }
-      if (err.code === 'auth/unauthorized-domain') {
+      if (err.code === 'auth/account-exists-with-different-credential') {
         setError(
-          'Ce domaine n\'est pas autorisé.\n\n' +
-          'Va dans Firebase Console → Authentication → Settings → ' +
-          'Authorized domains → Ajoute "' + window.location.hostname + '"'
+          'Cet email est déjà lié à un autre mode de connexion.\n\n' +
+          'Connectez-vous avec le mode utilisé lors de l\'inscription.'
         );
+        setErrorType('auth');
         setLoading(false);
         return;
       }
+      // Autres erreurs
       setError(translateError(err.code));
+      setErrorType('auth');
       setLoading(false);
     }
   };
@@ -179,7 +207,7 @@ export function AuthScreen() {
     }
     try {
       await sendPasswordResetEmail(_auth, email);
-      setError('Email de réinitialisation envoyé ✓');
+      setError('✓ Email de réinitialisation envoyé à ' + email);
       setErrorType('success');
     } catch (err: any) {
       setError(translateError(err.code));
@@ -293,26 +321,24 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
 
             {/* Error display */}
             {error && (
-              <div className="mb-4 p-3 text-sm" style={{
+              <div className="mb-4 p-4 text-sm rounded-lg" style={{
                 background: errorType === 'success'
-                  ? 'rgba(34,197,94,0.1)'
+                  ? 'rgba(34,197,94,0.15)'
                   : errorType === 'google'
-                    ? 'rgba(234,179,8,0.1)'
-                    : 'rgba(255,107,107,0.1)',
+                    ? 'rgba(234,179,8,0.15)'
+                    : 'rgba(255,107,107,0.15)',
                 border: `1px solid ${
                   errorType === 'success'
-                    ? 'rgba(34,197,94,0.2)'
+                    ? 'rgba(34,197,94,0.3)'
                     : errorType === 'google'
-                      ? 'rgba(234,179,8,0.2)'
-                      : 'rgba(255,107,107,0.2)'
+                      ? 'rgba(234,179,8,0.3)'
+                      : 'rgba(255,107,107,0.3)'
                 }`,
-                color: errorType === 'success' ? s.primary : errorType === 'google' ? '#EAB308' : '#FF6B6B',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-line',
+                color: errorType === 'success' ? '#22C55E' : errorType === 'google' ? '#EAB308' : '#FF6B6B',
               }}>
-                <div className="flex items-start gap-2">
-                  <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
+                <div className="flex items-start gap-3">
+                  <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+                  <span style={{ whiteSpace: 'pre-line', lineHeight: '1.5' }}>{error}</span>
                 </div>
               </div>
             )}
@@ -461,16 +487,38 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
                 border: `1px solid ${s.border}`,
                 color: s.textSec,
               }}
-              onMouseOver={e => { e.currentTarget.style.background = s.surface; e.currentTarget.style.borderColor = '#333'; }}
-              onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = s.border; }}
+              onMouseOver={e => { 
+                if (!loading) {
+                  e.currentTarget.style.background = s.surface; 
+                  e.currentTarget.style.borderColor = s.primary;
+                }
+              }}
+              onMouseOut={e => { 
+                e.currentTarget.style.background = 'transparent'; 
+                e.currentTarget.style.borderColor = s.border;
+              }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Continuer avec Google
+              {loading && error && error.includes('Popup bloqué') ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Redirection...
+                </>
+              ) : loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Connexion...
+                </>
+              ) : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continuer avec Google
+                </>
+              )}
             </button>
           </div>
         </div>
