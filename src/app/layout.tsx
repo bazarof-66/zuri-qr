@@ -19,6 +19,9 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Zuri QR - QR Codes Dynamiques & Intelligents",
   description: "Générez, modifiez et trackez vos QR codes en temps réel",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
