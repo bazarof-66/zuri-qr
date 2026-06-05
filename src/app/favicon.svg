@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Zuri Z favicon">
-  <rect width="64" height="64" fill="transparent"/>
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="44" fill="#22C55E">Z</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0A0A0A"/>
+  <path fill="#22C55E" d="M 10 10 L 54 10 L 54 22 L 24 42 L 54 42 L 54 54 L 10 54 L 10 42 L 40 22 L 10 22 Z"/>
 </svg>
