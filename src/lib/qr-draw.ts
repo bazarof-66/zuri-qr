@@ -1,76 +1,75 @@
 export type DotType = 'square' | 'rounded' | 'dots' | 'extra-rounded';
 export type CornerType = 'square' | 'extra-rounded' | 'dot';
 
-export function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, radius: number) {
+function isInFinder(r: number, c: number, size: number): boolean {
+  const s = 7;
+  return (
+    (r < s && c < s) ||
+    (r < s && c >= size - s) ||
+    (r >= size - s && c < s)
+  );
+}
+
+function isFinderDark(r: number, c: number, size: number): boolean {
+  // finder region local coordinates
+  let lr = r, lc = c;
+  if (r >= size - 7) lr = r - (size - 7);
+  if (c >= size - 7) lc = c - (size - 7);
+  const isBorder = lr === 0 || lr === 6 || lc === 0 || lc === 6;
+  const isCore = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
+  return isBorder || isCore;
+}
+
+function isFinderOrigin(r: number, c: number, size: number): boolean {
+  return (
+    (r === 0 && c === 0) ||
+    (r === 0 && c === size - 7) ||
+    (r === size - 7 && c === 0)
+  );
+}
+
+function drawRoundedPath(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, r: number) {
   ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + size - radius, y);
-  ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
-  ctx.lineTo(x + size, y + size - radius);
-  ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
-  ctx.lineTo(x + radius, y + size);
-  ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + s - r, y);
+  ctx.quadraticCurveTo(x + s, y, x + s, y + r);
+  ctx.lineTo(x + s, y + s - r);
+  ctx.quadraticCurveTo(x + s, y + s, x + s - r, y + s);
+  ctx.lineTo(x + r, y + s);
+  ctx.quadraticCurveTo(x, y + s, x, y + s - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.fill();
 }
 
-function drawFinderPattern(
-  ctx: CanvasRenderingContext2D,
-  startX: number, startY: number,
-  cellSize: number,
-  fg: string,
-  bg: string,
-  style: CornerType,
-) {
-  const size = cellSize * 7;
-  const cx = startX + size / 2;
-  const cy = startY + size / 2;
+function drawFinder(ctx: CanvasRenderingContext2D, x: number, y: number, c: number, fg: string, bg: string, style: CornerType) {
+  const s = c * 7;
+  const cx = x + s / 2;
+  const cy = y + s / 2;
 
+  // Outer 7x7 dark border
   ctx.fillStyle = fg;
-  if (style === 'square') ctx.fillRect(startX, startY, size, size);
-  else { ctx.beginPath(); ctx.arc(cx, cy, size / 2, 0, Math.PI * 2); ctx.fill(); }
+  if (style === 'square') ctx.fillRect(x, y, s, s);
+  else { ctx.beginPath(); ctx.arc(cx, cy, s / 2, 0, Math.PI * 2); ctx.fill(); }
 
+  // Inner 5x5 light ring (carve out)
   ctx.fillStyle = bg;
-  if (style === 'square') ctx.fillRect(startX + cellSize, startY + cellSize, cellSize * 5, cellSize * 5);
-  else { ctx.beginPath(); ctx.arc(cx, cy, cellSize * 2.5, 0, Math.PI * 2); ctx.fill(); }
+  if (style === 'square') ctx.fillRect(x + c, y + c, c * 5, c * 5);
+  else { ctx.beginPath(); ctx.arc(cx, cy, c * 2.5, 0, Math.PI * 2); ctx.fill(); }
 
+  // Core 3x3 dark center
   ctx.fillStyle = fg;
   if (style === 'dot') {
-    ctx.beginPath(); ctx.arc(cx, cy, cellSize * 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, c * 1.2, 0, Math.PI * 2); ctx.fill();
   } else {
-    ctx.fillRect(startX + cellSize * 2, startY + cellSize * 2, cellSize * 3, cellSize * 3);
+    ctx.fillRect(x + c * 2, y + c * 2, c * 3, c * 3);
   }
-}
-
-function getQRCellType(mod: { data: Uint8Array; size: number }, r: number, c: number): 'dark' | 'light' {
-  const fpSize = 7;
-  const count = mod.size;
-  for (const [sr, sc] of [[0, 0], [0, count - fpSize], [count - fpSize, 0]]) {
-    if (r >= sr && r < sr + fpSize && c >= sc && c < sc + fpSize) {
-      const lr = r - sr, lc = c - sc;
-      const isBorder = lr === 0 || lr === 6 || lc === 0 || lc === 6;
-      const isCore = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
-      return (isBorder || isCore) ? 'dark' : 'light';
-    }
-  }
-  return mod.data[r * count + c] === 1 ? 'dark' : 'light';
-}
-
-function isFinderOrigin(mod: { data: Uint8Array; size: number }, r: number, c: number): boolean {
-  const count = mod.size;
-  const fpSize = 7;
-  return (
-    (r === 0 && c === 0) ||
-    (r === 0 && c === count - fpSize) ||
-    (r === count - fpSize && c === 0)
-  );
 }
 
 export function drawQRCanvas(
   canvas: HTMLCanvasElement,
-  size: number,
+  canvasSize: number,
   mod: { data: Uint8Array; size: number },
   fg: string,
   bg: string,
@@ -79,26 +78,27 @@ export function drawQRCanvas(
 ) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  canvas.width = size;
-  canvas.height = size;
+
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
 
   const count = mod.size;
-  const cell = size / count;
-  const radius = cell * 0.3;
+  const cell = canvasSize / count;
+  const r = cell * 0.3;
 
+  // Background
   ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, canvasSize, canvasSize);
   ctx.fillStyle = fg;
 
-  for (let r = 0; r < count; r++) {
-    for (let c = 0; c < count; c++) {
-      const t = getQRCellType(mod, r, c);
-      if (t === 'light') continue;
-      if (isFinderOrigin(mod, r, c)) continue;
+  // Draw individual modules (skip finder regions entirely)
+  for (let row = 0; row < count; row++) {
+    for (let col = 0; col < count; col++) {
+      if (mod.data[row * count + col] !== 1) continue;
+      if (isInFinder(row, col, count)) continue;
 
-      const x = c * cell;
-      const y = r * cell;
-      ctx.fillStyle = fg;
+      const x = col * cell;
+      const y = row * cell;
       const cx = x + cell / 2;
 
       switch (dotType) {
@@ -106,25 +106,23 @@ export function drawQRCanvas(
           ctx.fillRect(x, y, cell, cell);
           break;
         case 'rounded':
-          drawRoundedRect(ctx, x, y, cell, radius);
+          drawRoundedPath(ctx, x, y, cell, r);
           break;
         case 'dots':
           ctx.beginPath();
-          ctx.arc(cx, y + cell / 2, cell * 0.3, 0, Math.PI * 2);
+          ctx.arc(cx, y + cell / 2, cell * 0.35, 0, Math.PI * 2);
           ctx.fill();
           break;
         case 'extra-rounded':
-          drawRoundedRect(ctx, x + cell * 0.05, y + cell * 0.05, cell * 0.9, cell * 0.3);
+          drawRoundedPath(ctx, x + cell * 0.05, y + cell * 0.05, cell * 0.9, cell * 0.25);
           break;
       }
     }
   }
 
-  // Overlay finder patterns
+  // Draw finder patterns on top (overwrites anything in those regions)
   const origins = [[0, 0], [0, count - 7], [count - 7, 0]];
-  for (const [or, oc] of origins) {
-    const x = oc * cell;
-    const y = or * cell;
-    drawFinderPattern(ctx, x, y, cell, fg, bg, cornerType);
+  for (const [orow, ocol] of origins) {
+    drawFinder(ctx, ocol * cell, orow * cell, cell, fg, bg, cornerType);
   }
 }
